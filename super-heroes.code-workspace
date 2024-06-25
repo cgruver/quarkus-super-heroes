@@ -1,0 +1,37 @@
+{
+	"folders": [
+		{
+			"name": "dev-spaces-podman-compose-quarkus-superheroes",
+			"path": "/projects/dev-spaces-podman-compose-quarkus-superheroes"
+		},
+		{
+			"name": "quarkus-super-heroes",
+			"path": "/projects/quarkus-super-heroes"
+		}
+	],
+	"extensions": {
+		"recommendations": [
+			"redhat.vscode-yaml",
+			"redhat.java",
+			"redhat.vscode-quarkus",
+			"redhat.vscode-openshift-connector",
+			"mhutchie.git-graph",
+			"eamodio.gitlens",
+			"streetsidesoftware.code-spell-checker",
+			"johnpapa.winteriscoming",
+			"cnshenj.vscode-task-manager",
+			"angular.ng-template",
+			"johnpapa.angular2"
+		]
+	},
+	"settings": {
+		"workbench.colorTheme": "Winter is Coming (Light)",
+		"workbench.preferredDarkColorTheme": "Winter is Coming (Dark Blue)",
+		"workbench.preferredLightColorTheme": "Winter is Coming (Light)",
+		"java.compile.nullAnalysis.mode": "disabled",
+		"java.configuration.updateBuildConfiguration": "automatic",
+		"editor.wordWrap": "on",
+		"files.autoSave": "off",
+		"java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx2G -Xms100m -Xlog:disable"
+	}
+}
