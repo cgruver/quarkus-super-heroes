@@ -109,6 +109,15 @@ EOF
 
 ## Create a Workspace
 
-Log into OpenShift Dev Spaces as a non-cluster-admin user.
+1. Log into OpenShift Dev Spaces as a non-cluster-admin user.
 
-Create a new workspace from the git URL of this repository
+1. Create a new workspace from the git URL of this repository
+
+## Run the demo app
+
+1. Open a new terminal in the workspace
+
+```
+export API_BASE_URL=https://$(oc get route ${DEVWORKSPACE_ID}-dev-tools-8082-https-fights -o jsonpath={.spec.host})
+podman compose -f /projects/quarkus-super-heroes/deploy/docker-compose/dev-spaces-java17.yml -f /projects/quarkus-super-heroes/deploy/docker-compose/dev-spaces-monitoring.yml up --remove-orphans
+```
