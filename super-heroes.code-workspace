@@ -1,10 +1,6 @@
 {
 	"folders": [
 		{
-			"name": "dev-spaces-podman-compose-quarkus-superheroes",
-			"path": "/projects/dev-spaces-podman-compose-quarkus-superheroes"
-		},
-		{
 			"name": "quarkus-super-heroes",
 			"path": "/projects/quarkus-super-heroes"
 		}
