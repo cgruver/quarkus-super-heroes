@@ -34,6 +34,12 @@ components:
       value: "true"
     - name: DOCKER_CMD
       value: podman
+    - name: DOCKER_SOCK
+      value: /tmp/podman.sock
+    - name: DOCKER_HOST
+      value: "unix:///tmp/podman.sock"
+    - name: CONTAINER_HOST
+      value: "unix:///tmp/podman.sock"
     - name: FIGHTS_SERVICE_PORT
       value: "8080"
     volumeMounts:
@@ -115,6 +121,15 @@ commands:
     component: oc-cli
     label: Copy OpenShift CLI
   id: cp-oc-cli
+- exec:
+    label: "Start Podman Service"
+    component: dev-tools
+    workingDir: ${PROJECTS_ROOT}
+    commandLine: "unset CONTAINER_HOST && podman --log-level debug system service --time=0 unix:///tmp/podman.sock"
+    group:
+      kind: run
+      isDefault: true
+  id: start-podman
 events:
   preStart:
     - cp-oc-cli
