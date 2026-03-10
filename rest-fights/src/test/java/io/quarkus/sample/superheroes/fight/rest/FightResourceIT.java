@@ -1,8 +1,8 @@
 package io.quarkus.sample.superheroes.fight.rest;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static io.restassured.RestAssured.get;
 import static io.restassured.RestAssured.*;
+import static io.restassured.RestAssured.get;
 import static io.restassured.http.ContentType.*;
 import static jakarta.ws.rs.core.HttpHeaders.*;
 import static jakarta.ws.rs.core.MediaType.*;
@@ -15,7 +15,6 @@ import static org.wiremock.grpc.dsl.WireMockGrpc.*;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -24,7 +23,6 @@ import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.bson.types.ObjectId;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -37,7 +35,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.wiremock.grpc.dsl.WireMockGrpcService;
 
 import io.quarkus.logging.Log;
-import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.kafka.InjectKafkaCompanion;
@@ -68,16 +66,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
-import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.AvroSerdeConfig;
 import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
-import io.apicurio.rest.client.VertxHttpClientProvider;
 import io.restassured.RestAssured;
 import io.restassured.config.HttpClientConfig;
 import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
-import io.vertx.core.Vertx;
 
 /**
  * Integration tests for the application as a whole. Orders tests in an order to faciliate a scenario of interactions
@@ -96,9 +91,9 @@ import io.vertx.core.Vertx;
  */
 @QuarkusIntegrationTest
 @TestProfile(ShorterTimeoutsProfile.class)
-@QuarkusTestResource(value = HeroesVillainsNarrationWiremockServerResource.class, restrictToAnnotatedClass = true)
-@QuarkusTestResource(value = KafkaCompanionResource.class, restrictToAnnotatedClass = true)
-@QuarkusTestResource(value = LocationsWiremockGrpcServerResource.class, restrictToAnnotatedClass = true)
+@WithTestResource(HeroesVillainsNarrationWiremockServerResource.class)
+@WithTestResource(KafkaCompanionResource.class)
+@WithTestResource(LocationsWiremockGrpcServerResource.class)
 @TestMethodOrder(OrderAnnotation.class)
 class FightResourceIT {
 	private static final int DEFAULT_ORDER = 0;
@@ -212,22 +207,10 @@ class FightResourceIT {
 	@InjectKafkaCompanion
   KafkaCompanion companion;
 
-  private static Vertx vertx;
-
 	@BeforeAll
 	public static void beforeAll() {
 		RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-
-		OBJECT_MAPPER.setSerializationInclusion(Include.NON_EMPTY);
-    // Set Apicurio Avro
-    vertx = Vertx.vertx();
-    RegistryClientFactory.setProvider(new VertxHttpClientProvider(vertx));
-  }
-
-  @AfterAll
-  static void afterAll() {
-    Optional.ofNullable(vertx)
-      .ifPresent(Vertx::close);
+    OBJECT_MAPPER.setDefaultPropertyInclusion(Include.NON_EMPTY);
   }
 
 	@BeforeEach
@@ -237,7 +220,7 @@ class FightResourceIT {
     this.wireMockGrpc.resetAll();
 
     // Configure Avro Serde for Fight
-    companion.setCommonClientConfig(Map.of(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName()));
+    companion.setCommonClientConfig(Map.of(AvroSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName()));
     Serde<io.quarkus.sample.superheroes.fight.schema.Fight> serde = Serdes.serdeFrom(new AvroKafkaSerializer<>(), new AvroKafkaDeserializer<>());
     serde.configure(companion.getCommonClientConfig(), false);
     companion.registerSerde(io.quarkus.sample.superheroes.fight.schema.Fight.class, serde);
@@ -1691,8 +1674,4 @@ class FightResourceIT {
 	private static String getDefaultHeroJson() {
 		return writeAsJson(DEFAULT_HERO);
 	}
-
-  private static String getDefaultLocationJson() {
-    return writeAsJson(DEFAULT_LOCATION);
-  }
 }

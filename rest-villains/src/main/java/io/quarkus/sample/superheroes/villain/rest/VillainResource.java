@@ -36,12 +36,14 @@ import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import org.jboss.logging.Logger;
+
+import io.quarkus.logging.Log;
 
 import io.quarkus.sample.superheroes.villain.Villain;
 import io.quarkus.sample.superheroes.villain.service.VillainService;
 
 import io.smallrye.common.annotation.NonBlocking;
+import io.smallrye.common.annotation.RunOnVirtualThread;
 
 /**
  * JAX-RS API endpoints with <code>/api/villains</code> as the base URI for all endpoints
@@ -50,9 +52,6 @@ import io.smallrye.common.annotation.NonBlocking;
 @Tag(name = "villains")
 @Produces(APPLICATION_JSON)
 public class VillainResource {
-  @Inject
-	Logger logger;
-
   @Inject
 	VillainService service;
 
@@ -72,14 +71,15 @@ public class VillainResource {
 		responseCode = "404",
 		description = "No villain found"
 	)
+  @RunOnVirtualThread
 	public Response getRandomVillain() {
 		return this.service.findRandomVillain()
 			.map(v -> {
-				this.logger.debugf("Found random villain: %s", v);
+				Log.debugf("Found random villain: %s", v);
 				return Response.ok(v).build();
 			})
 			.orElseGet(() -> {
-				this.logger.debug("No random villain found");
+				Log.debug("No random villain found");
 				return Response.status(Status.NOT_FOUND).build();
 			});
 	}
@@ -95,12 +95,13 @@ public class VillainResource {
       examples = @ExampleObject(name = "villains", value = Examples.VALID_EXAMPLE_VILLAIN_LIST)
     )
 	)
+  @RunOnVirtualThread
 	public List<Villain> getAllVillains(@Parameter(name = "name_filter", description = "An optional filter parameter to filter results by name") @QueryParam("name_filter") Optional<String> nameFilter) {
     var villains = nameFilter
       .map(this.service::findAllVillainsHavingName)
       .orElseGet(this.service::findAllVillains);
 
-		this.logger.debugf("Total number of villains: %d", villains.size());
+		Log.debugf("Total number of villains: %d", villains.size());
 
 		return villains;
 	}
@@ -121,14 +122,15 @@ public class VillainResource {
 		responseCode = "404",
 		description = "The villain is not found for a given identifier"
 	)
+  @RunOnVirtualThread
 	public Response getVillain(@Parameter(name = "id", required = true) @PathParam("id") Long id) {
 		return this.service.findVillainById(id)
 			.map(v -> {
-				this.logger.debugf("Found villain: %s", v);
+				Log.debugf("Found villain: %s", v);
 				return Response.ok(v).build();
 			})
 			.orElseGet(() -> {
-				this.logger.debugf("No villain found with id %d", id);
+				Log.debugf("No villain found with id %d", id);
 				return Response.status(Status.NOT_FOUND).build();
 			});
 	}
@@ -145,6 +147,7 @@ public class VillainResource {
 		responseCode = "400",
 		description = "Invalid villain passed in (or no request body found)"
 	)
+  @RunOnVirtualThread
 	public Response createVillain(
     @RequestBody(
       name = "villain",
@@ -159,7 +162,7 @@ public class VillainResource {
     @Context UriInfo uriInfo) {
 		var v = this.service.persistVillain(villain);
 		var builder = uriInfo.getAbsolutePathBuilder().path(Long.toString(v.id));
-		this.logger.debugf("New villain created with URI %s", builder.build().toString());
+		Log.debugf("New villain created with URI %s", builder.build().toString());
 		return Response.created(builder.build()).build();
 	}
 
@@ -179,6 +182,7 @@ public class VillainResource {
 		responseCode = "404",
 		description = "No villain found"
 	)
+  @RunOnVirtualThread
 	public Response fullyUpdateVillain(
     @Parameter(name = "id", required = true) @PathParam("id") Long id,
     @RequestBody(
@@ -197,11 +201,11 @@ public class VillainResource {
 
 		return this.service.replaceVillain(villain)
 			.map(v -> {
-				this.logger.debugf("Villain replaced with new values %s", v);
+				Log.debugf("Villain replaced with new values %s", v);
 				return Response.noContent().build();
 			})
 			.orElseGet(() -> {
-				this.logger.debugf("No villain found with id %d", villain.id);
+				Log.debugf("No villain found with id %d", villain.id);
 				return Response.status(Status.NOT_FOUND).build();
 			});
 	}
@@ -218,6 +222,7 @@ public class VillainResource {
 		responseCode = "400",
 		description = "Invalid villains passed in (or no request body found)"
 	)
+  @RunOnVirtualThread
   public Response replaceAllVillains(
     @RequestBody(
       name = "valid_villains",
@@ -232,7 +237,7 @@ public class VillainResource {
     @Context UriInfo uriInfo) {
     this.service.replaceAllVillains(villains);
 		var uri = uriInfo.getAbsolutePathBuilder().build();
-		this.logger.debugf("New Villains created with URI %s", uri.toString());
+		Log.debugf("New Villains created with URI %s", uri.toString());
 		return Response.created(uri).build();
   }
 
@@ -257,6 +262,7 @@ public class VillainResource {
 		responseCode = "404",
 		description = "No villain found"
 	)
+  @RunOnVirtualThread
 	public Response partiallyUpdateVillain(
     @Parameter(name = "id", required = true) @PathParam("id") Long id,
     @RequestBody(
@@ -274,11 +280,11 @@ public class VillainResource {
 
 		return this.service.partialUpdateVillain(villain)
 			.map(v -> {
-				this.logger.debugf("Villain updated with new values %s", v);
+				Log.debugf("Villain updated with new values %s", v);
 				return Response.ok(v).build();
 			})
 			.orElseGet(() -> {
-				this.logger.debugf("No villain found with id %d", villain.id);
+				Log.debugf("No villain found with id %d", villain.id);
 				return Response.status(Status.NOT_FOUND).build();
 			});
 	}
@@ -289,9 +295,10 @@ public class VillainResource {
 		responseCode = "204",
 		description = "Deletes all villains"
 	)
+  @RunOnVirtualThread
 	public void deleteAllVillains() {
 		this.service.deleteAllVillains();
-		this.logger.debug("Deleted all villains");
+		Log.debug("Deleted all villains");
 	}
 
 	@DELETE
@@ -301,9 +308,10 @@ public class VillainResource {
 		responseCode = "204",
 		description = "Delete a villain"
 	)
+  @RunOnVirtualThread
 	public void deleteVillain(@Parameter(name = "id", required = true) @PathParam("id") Long id) {
 		this.service.deleteVillain(id);
-		this.logger.debugf("Villain with id %d deleted ", id);
+		Log.debugf("Villain with id %d deleted ", id);
 	}
 
 	@GET
@@ -321,7 +329,7 @@ public class VillainResource {
 	)
   @NonBlocking
 	public String hello() {
-    this.logger.debug("Hello Villain Resource");
+    Log.debug("Hello Villain Resource");
 		return "Hello Villain Resource";
 	}
 }

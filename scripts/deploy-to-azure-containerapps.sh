@@ -29,8 +29,8 @@ help() {
   echo "  -s <database_server_sku>               The SKU to use for the PostgreSQL/MariaDB servers (see https://azure.microsoft.com/en-us/pricing/details/postgresql/flexible-server / https://azure.microsoft.com/en-us/pricing/details/mysql/flexible-server)"
   echo "                                             Default: 'B1ms'"
   echo "  -t <tag>                               The tag for the images to deploy"
-  echo "                                             Accepted values: 'java17-latest' or 'native-latest'"
-  echo "                                             Default: 'java17-latest'"
+  echo "                                             Accepted values: 'java21-latest' or 'native-latest'"
+  echo "                                             Default: 'java21-latest'"
   echo "  -u <unique_identifier>                 A unique identifier to append to some resources. Some Azure services require unique names within a region (across users)."
   echo "                                             Default is to use the output of the 'whoami' command."
 }
@@ -248,7 +248,7 @@ create_heroes_app() {
     --ingress external \
     --target-port 8083 \
     --min-replicas 1 \
-    --env-vars QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=validate \
+    --env-vars QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY=validate \
                QUARKUS_HIBERNATE_ORM_SQL_LOAD_SCRIPT=no-file \
                QUARKUS_DATASOURCE_USERNAME="$POSTGRES_DB_ADMIN" \
                QUARKUS_DATASOURCE_PASSWORD="$POSTGRES_DB_PWD" \
@@ -272,7 +272,7 @@ create_villains_app() {
     --ingress external \
     --target-port 8084 \
     --min-replicas 1 \
-    --env-vars QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=validate \
+    --env-vars QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY=validate \
                QUARKUS_HIBERNATE_ORM_SQL_LOAD_SCRIPT=no-file \
                QUARKUS_DATASOURCE_USERNAME="$POSTGRES_DB_ADMIN" \
                QUARKUS_DATASOURCE_PASSWORD="$POSTGRES_DB_PWD" \
@@ -297,7 +297,7 @@ create_locations_app() {
     --transport http2 \
     --target-port 8089 \
     --min-replicas 1 \
-    --env-vars QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=validate \
+    --env-vars QUARKUS_HIBERNATE_ORM_SCHEMA_MANAGEMENT_STRATEGY=validate \
                QUARKUS_HIBERNATE_ORM_SQL_LOAD_SCRIPT=no-file \
                QUARKUS_DATASOURCE_USERNAME="$MARIADB_ADMIN_USER" \
                QUARKUS_DATASOURCE_PASSWORD="$MARIADB_ADMIN_PWD" \
@@ -443,7 +443,7 @@ create_azure_openai_resources() {
 # Define defaults
 RESOURCE_GROUP="super-heroes"
 LOCATION="eastus2"
-IMAGES_TAG="java17-latest"
+IMAGES_TAG="java21-latest"
 UNIQUE_IDENTIFIER=$(whoami)
 POSTGRES_SKU="B1ms"
 POSTGRES_TIER="Burstable"

@@ -11,7 +11,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
@@ -30,12 +29,11 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.jboss.logging.Logger;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.kafka.InjectKafkaCompanion;
@@ -49,15 +47,12 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
-import io.apicurio.registry.rest.client.RegistryClientFactory;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
-import io.apicurio.registry.serde.avro.AvroKafkaSerdeConfig;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.AvroSerdeConfig;
 import io.apicurio.registry.serde.avro.ReflectAvroDatumProvider;
-import io.apicurio.rest.client.VertxHttpClientProvider;
 import io.smallrye.mutiny.unchecked.Unchecked;
 import io.smallrye.reactive.messaging.kafka.companion.KafkaCompanion;
-import io.vertx.core.Vertx;
 
 /**
  * Integration tests for the {@link TeamStatsWebSocket} and {@link TopWinnerWebSocket} WebSockets.
@@ -68,7 +63,7 @@ import io.vertx.core.Vertx;
  * </p>
  */
 @QuarkusIntegrationTest
-@QuarkusTestResource(value = KafkaCompanionResource.class, restrictToAnnotatedClass = true)
+@WithTestResource(KafkaCompanionResource.class)
 class WebSocketsIT {
 	private static final String HERO_NAME = "Chewbacca";
 	private static final String HERO_TEAM_NAME = "heroes";
@@ -85,29 +80,17 @@ class WebSocketsIT {
   @InjectKafkaCompanion
   KafkaCompanion companion;
 
-  private static Vertx vertx;
-
   @BeforeAll
   public static void beforeAll() {
-    OBJECT_MAPPER.setSerializationInclusion(Include.NON_EMPTY);
+    OBJECT_MAPPER.setDefaultPropertyInclusion(Include.NON_EMPTY);
     OBJECT_MAPPER.registerModule(new ParameterNamesModule(Mode.PROPERTIES));
     OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-    // Set Apicurio Avro
-    vertx = Vertx.vertx();
-    RegistryClientFactory.setProvider(new VertxHttpClientProvider(vertx));
-  }
-
-  @AfterAll
-  static void afterAll() {
-    Optional.ofNullable(vertx)
-      .ifPresent(Vertx::close);
   }
 
   @BeforeEach
   void beforeEach() {
     // Configure Avro Serde for Fight
-    companion.setCommonClientConfig(Map.of(AvroKafkaSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName()));
+    companion.setCommonClientConfig(Map.of(AvroSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName()));
     Serde<Fight> serde = Serdes.serdeFrom(new AvroKafkaSerializer<>(), new AvroKafkaDeserializer<>());
     serde.configure(companion.getCommonClientConfig(), false);
     companion.registerSerde(io.quarkus.sample.superheroes.fight.schema.Fight.class, serde);
@@ -135,7 +118,8 @@ class WebSocketsIT {
       companion.produce(Fight.class)
         .fromRecords(sampleFights.stream()
           .map(fight -> new ProducerRecord<String, Fight>("fights", fight))
-          .collect(Collectors.toList()));
+          .toList()
+        );
 
 			// Wait for our messages to appear in the queue
 			await()
@@ -291,7 +275,7 @@ class WebSocketsIT {
 				}
 
 				return fight.build();
-			}).collect(Collectors.toList());
+			}).toList();
 	}
 
 	@ClientEndpoint

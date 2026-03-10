@@ -1,8 +1,5 @@
 name: Basic build and test
 
-env:
-  MANDREL_VERSION: "23.1.2.0"
-
 on:
   push:
     paths-ignore:
@@ -17,6 +14,13 @@ on:
       - '.github/workflows/build-push-ui-images.yml'
       - '.github/workflows/dependabot-automerge.yml'
       - '.github/workflows/sonar-scan.yml'
+      - '.github/workflows/build-push-container-images.yml'
+      - '.github/workflows/build-push-container-images-3.15.Final.yml'
+      - '.github/workflows/build-push-container-images-3.20.Final.yml'
+      - '.github/workflows/build-push-container-images-rhbq-3.15.yml'
+      - '.github/workflows/build-push-container-images-rhbq-3.20.yml'
+      - '.github/calculateModules.java'
+      - '.sonarlint/**'
       - 'scripts/deploy-to-azure-containerapps.sh'
       - 'scripts/create-azure-openai-resources.sh'
       - 'scripts/delete-azure-openai-resources.sh'
@@ -45,6 +49,13 @@ on:
       - '.github/workflows/build-push-ui-images.yml'
       - '.github/workflows/dependabot-automerge.yml'
       - '.github/workflows/sonar-scan.yml'
+      - '.github/workflows/build-push-container-images.yml'
+      - '.github/workflows/build-push-container-images-3.15.Final.yml'
+      - '.github/workflows/build-push-container-images-3.20.Final.yml'
+      - '.github/workflows/build-push-container-images-rhbq-3.15.yml'
+      - '.github/workflows/build-push-container-images-rhbq-3.20.yml'
+      - '.github/calculateModules.java'
+      - '.sonarlint/**'
       - 'scripts/*.sh'
       - '**/hyperfoil/**'
   workflow_dispatch:
@@ -58,10 +69,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'quarkusio/quarkus-super-heroes'
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         java:
-          - '17'
+          - '21'
         project:
           - { name: event-statistics }
           - { name: rest-fights }
@@ -73,10 +84,10 @@ jobs:
           - { name: ui-super-heroes }
     name: "build-test-${{ matrix.project.name }}-${{ matrix.java }}-${{ matrix.project.openai-type }}"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Java ${{ matrix.java }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: ${{ matrix.java }}
           distribution: temurin
@@ -99,11 +110,12 @@ jobs:
   jvm-container-build-test:
     runs-on: ubuntu-latest
     if: github.repository == 'quarkusio/quarkus-super-heroes'
+    needs: jvm-build-test
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         java:
-          - '17'
+          - '21'
         project:
           - { name: rest-heroes }
           - { name: rest-villains }
@@ -113,10 +125,10 @@ jobs:
           - { name: ui-super-heroes }
     name: "container-build-test-${{ matrix.project.name }}-${{ matrix.java }}-${{ matrix.project.openai-type }}"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Java ${{ matrix.java }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: ${{ matrix.java }}
           distribution: temurin
@@ -142,20 +154,21 @@ jobs:
   jvm-container-build:
     runs-on: ubuntu-latest
     if: github.repository == 'quarkusio/quarkus-super-heroes'
+    needs: jvm-build-test
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         java:
-          - '17'
+          - '21'
         project:
           - event-statistics
           - rest-fights
     name: "container-build-${{ matrix.project }}-${{ matrix.java }}"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Java ${{ matrix.java }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: ${{ matrix.java }}
           distribution: temurin
@@ -172,11 +185,12 @@ jobs:
   native-build-test:
     runs-on: ubuntu-latest
     if: github.repository == 'quarkusio/quarkus-super-heroes'
+    needs: jvm-build-test
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         java:
-          - { jvm: '17', mandrel: '21' }
+          - { jvm: '21', mandrel: '21' }
         project:
           - { name: event-statistics }
           - { name: rest-fights }
@@ -188,32 +202,16 @@ jobs:
           - { name: ui-super-heroes }
     name: "native-build-test-${{ matrix.project.name }}-${{ matrix.project.openai-type }}"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Get Mandrel file name
-        run: echo "MANDREL_FILE=mandrel-java${{ matrix.java.mandrel }}-linux-amd64-${{ env.MANDREL_VERSION }}-Final.tar.gz" >> $GITHUB_ENV
-
-      - name: Cache and restore Mandrel distro
-        id: check-mandrel-cache
-        uses: actions/cache@v4
+      - name: Setup GraalVM
+        uses: graalvm/setup-graalvm@v1
         with:
-          path: ${{ env.MANDREL_FILE }}
-          key: mandrel-distro-${{ env.MANDREL_VERSION }}
-
-      - name: Download Mandrel
-        if: steps.check-mandrel-cache.outputs.cache-hit != 'true'
-        run: |
-          download_url="https://github.com/graalvm/mandrel/releases/download/mandrel-${{ env.MANDREL_VERSION }}-Final/${{ env.MANDREL_FILE }}"
-          wget -q -O ${{ env.MANDREL_FILE }} $download_url
-
-      - name: Setup Maven+OpenJDK Distro
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'jdkfile'
-          jdkFile: ${{ env.MANDREL_FILE }}
-          java-version: ${{ matrix.java.jvm }}
-          architecture: x64
-          cache: maven
+          java-version: '${{ matrix.java.mandrel }}'
+          distribution: 'mandrel'
+          cache: 'maven'
+          native-image-job-reports: 'true'
+          native-image-pr-reports: 'true'
 
       - name: Create env vars
         if: matrix.project.openai-type
@@ -232,11 +230,12 @@ jobs:
   native-container-build-test:
     runs-on: ubuntu-latest
     if: github.repository == 'quarkusio/quarkus-super-heroes'
+    needs: jvm-build-test
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         java:
-          - { jvm: '17', mandrel: '21' }
+          - { jvm: '21', mandrel: '21' }
         project:
           - { name: rest-heroes }
           - { name: rest-villains }
@@ -246,32 +245,16 @@ jobs:
           - { name: ui-super-heroes }
     name: "native-container-build-test-${{ matrix.project.name }}-${{ matrix.project.openai-type }}"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Get Mandrel file name
-        run: echo "MANDREL_FILE=mandrel-java${{ matrix.java.mandrel }}-linux-amd64-${{ env.MANDREL_VERSION }}-Final.tar.gz" >> $GITHUB_ENV
-
-      - name: Cache and restore Mandrel distro
-        id: check-mandrel-cache
-        uses: actions/cache@v4
+      - name: Setup GraalVM
+        uses: graalvm/setup-graalvm@v1
         with:
-          path: ${{ env.MANDREL_FILE }}
-          key: mandrel-distro-${{ env.MANDREL_VERSION }}
-
-      - name: Download Mandrel
-        if: steps.check-mandrel-cache.outputs.cache-hit != 'true'
-        run: |
-          download_url="https://github.com/graalvm/mandrel/releases/download/mandrel-${{ env.MANDREL_VERSION }}-Final/${{ env.MANDREL_FILE }}"
-          wget -q -O ${{ env.MANDREL_FILE }} $download_url
-
-      - name: Setup Maven+OpenJDK Distro
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'jdkfile'
-          jdkFile: ${{ env.MANDREL_FILE }}
-          java-version: ${{ matrix.java.jvm }}
-          architecture: x64
-          cache: maven
+          java-version: '${{ matrix.java.mandrel }}'
+          distribution: 'mandrel'
+          cache: 'maven'
+          native-image-job-reports: 'true'
+          native-image-pr-reports: 'true'
 
       - name: Create env vars
         if: matrix.project.openai-type
@@ -294,42 +277,27 @@ jobs:
   native-container-build:
     runs-on: ubuntu-latest
     if: github.repository == 'quarkusio/quarkus-super-heroes'
+    needs: jvm-build-test
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         java:
-          - { jvm: '17', mandrel: '21' }
+          - { jvm: '21', mandrel: '21' }
         project:
           - event-statistics
           - rest-fights
     name: "native-container-build-${{ matrix.project }}"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Get Mandrel file name
-        run: echo "MANDREL_FILE=mandrel-java${{ matrix.java.mandrel }}-linux-amd64-${{ env.MANDREL_VERSION }}-Final.tar.gz" >> $GITHUB_ENV
-
-      - name: Cache and restore Mandrel distro
-        id: check-mandrel-cache
-        uses: actions/cache@v4
+      - name: Setup GraalVM
+        uses: graalvm/setup-graalvm@v1
         with:
-          path: ${{ env.MANDREL_FILE }}
-          key: mandrel-distro-${{ env.MANDREL_VERSION }}
-
-      - name: Download Mandrel
-        if: steps.check-mandrel-cache.outputs.cache-hit != 'true'
-        run: |
-          download_url="https://github.com/graalvm/mandrel/releases/download/mandrel-${{ env.MANDREL_VERSION }}-Final/${{ env.MANDREL_FILE }}"
-          wget -q -O ${{ env.MANDREL_FILE }} $download_url
-
-      - name: Setup Maven+OpenJDK Distro
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'jdkfile'
-          jdkFile: ${{ env.MANDREL_FILE }}
-          java-version: ${{ matrix.java.jvm }}
-          architecture: x64
-          cache: maven
+          java-version: '${{ matrix.java.mandrel }}'
+          distribution: 'mandrel'
+          cache: 'maven'
+          native-image-job-reports: 'true'
+          native-image-pr-reports: 'true'
 
       - name: "build-native-container-${{ matrix.project }}-java-${{ matrix.java.jvm }}"
         working-directory: ${{ matrix.project }}

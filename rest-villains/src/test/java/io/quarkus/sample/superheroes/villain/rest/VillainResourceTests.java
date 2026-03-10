@@ -5,8 +5,8 @@ import static io.restassured.http.ContentType.*;
 import static jakarta.ws.rs.core.Response.Status.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
@@ -23,6 +23,8 @@ import org.mockito.ArgumentMatcher;
 
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.virtual.ShouldNotPin;
+import io.quarkus.test.junit.virtual.VirtualThreadUnit;
 
 import io.quarkus.sample.superheroes.villain.Villain;
 import io.quarkus.sample.superheroes.villain.service.VillainService;
@@ -30,6 +32,8 @@ import io.quarkus.sample.superheroes.villain.service.VillainService;
 import io.restassured.RestAssured;
 
 @QuarkusTest
+@VirtualThreadUnit
+@ShouldNotPin
 class VillainResourceTests {
 	private static final String DEFAULT_NAME = "Super Chocolatine";
 	private static final String UPDATED_NAME = DEFAULT_NAME + " (updated)";
@@ -322,20 +326,6 @@ class VillainResourceTests {
     verify(this.villainService).findAllVillainsHavingName("name");
     verifyNoMoreInteractions(this.villainService);
   }
-
-	@Test
-	void shouldGetNullItems() {
-		when(this.villainService.findAllVillains())
-			.thenReturn(List.of());
-
-		get("/api/villains")
-			.then()
-				.statusCode(OK.getStatusCode())
-				.body("$.size()", is(0));
-
-		verify(this.villainService).findAllVillains();
-		verifyNoMoreInteractions(this.villainService);
-	}
 
 	@Test
 	void shouldAddAnItem() {

@@ -31,7 +31,7 @@ class NarrationServiceTests {
 
   private static final String REQUEST_JSON = """
     {
-      "model": "gpt-3.5-turbo",
+      "model": "gpt-4o-mini",
       "messages": [
         {
           "role": "system",
@@ -54,7 +54,7 @@ class NarrationServiceTests {
       "id": "chatcmpl-8Uy1UC7ZFUXtjhYcY5VFj7eYGu6jX",
       "object": "chat.completion",
       "created": 1702391260,
-      "model": "gpt-3.5-turbo-0613",
+      "model": "gpt-4o-mini-2024-07-18",
       "choices": [
         {
           "index": 0,
@@ -153,7 +153,7 @@ class NarrationServiceTests {
             .withHeader("openai-organization", "my-org-1234")
             .withHeader("openai-version", "2020-10-01")
             .withHeader("openai-processing-ms", "15000")
-            .withFixedDelay(Long.valueOf(this.timeout.multipliedBy(2).toMillis()).intValue())
+            .withFixedDelay((int) this.timeout.multipliedBy(2).toMillis())
         )
     );
 
@@ -161,7 +161,7 @@ class NarrationServiceTests {
       .isEqualTo(NarrationService.FALLBACK_NARRATION);
 
     this.wireMock.verifyThat(
-      2,
+      3,
       postRequestedFor(urlEqualTo("/v1/chat/completions"))
         .withHeader(HttpHeaders.ACCEPT, equalToIgnoreCase(MediaType.APPLICATION_JSON))
         .withHeader(HttpHeaders.CONTENT_TYPE, equalToIgnoreCase(MediaType.APPLICATION_JSON))
@@ -183,7 +183,7 @@ class NarrationServiceTests {
       .isEqualTo(NarrationService.FALLBACK_NARRATION);
 
     this.wireMock.verifyThat(
-      2,
+      3,
       postRequestedFor(urlEqualTo("/v1/chat/completions"))
         .withHeader(HttpHeaders.ACCEPT, equalToIgnoreCase(MediaType.APPLICATION_JSON))
         .withHeader(HttpHeaders.CONTENT_TYPE, equalToIgnoreCase(MediaType.APPLICATION_JSON))
